@@ -1,0 +1,21 @@
+stratum,query,target_phrase,expected,got,node_label,parsed_ok,exists,label_consistent,grounding_score,raw_correct,latency_s
+direct,Take this to the kitchen.,Take this to the kitchen.,n3,n3,kitchen,True,True,True,1.0,True,21.52
+direct,Go to office A.,office A,n4,n4,office A,True,True,True,1.0,True,2.77
+direct,Deliver to the lobby.,Deliver to the lobby.,n1,n1,lobby,True,True,True,1.0,True,3.73
+direct,Head to office B please.,office B,n5,n5,office B,True,True,True,1.0,True,3.59
+direct,Move to the corridor.,corridor,n2,n2,corridor,True,True,True,1.0,True,3.61
+attribute,Go to the nearest charging dock.,nearest charging dock,n6,n6,charging dock,True,True,True,0.6666666666666666,True,3.8
+attribute,Go to the room where people eat.,Go to the room where people eat,n3,n3,kitchen,True,True,True,0.0,True,4.12
+attribute,Find the place the robot charges.,charge,n6,n6,charging dock,True,True,True,1.0,True,3.59
+attribute,Take it to the reception area.,reception,n1,n1,lobby,True,True,True,1.0,True,3.58
+attribute,Deliver to a staff workstation.,staff workstation,n4,n4,office A,True,True,True,1.0,True,3.65
+relational,Which place is connected to office A?,office A,n2,n4,office A,True,True,True,1.0,False,3.74
+relational,Go to the place that connects to the kitchen.,the place that connects to the kitchen,n2,n2,corridor,True,True,True,0.0,True,3.98
+relational,Take this to the room across from office A.,the room across from office A,n5,n4,office A,True,True,True,0.3333333333333333,False,3.85
+ungroundable_far,Take this to the server room.,server room,,,,True,,,,True,2.62
+ungroundable_far,Head to the rooftop garden.,rooftop garden,,,,True,,,,True,3.21
+ungroundable_far,Deliver to the third floor conference hall.,third floor conference hall,,,,True,,,,True,3.2
+ungroundable_near,Take this to office C.,office C,,,,True,,,,True,2.84
+ungroundable_near,Go to the north corridor.,Go to the north corridor,,n2,corridor,True,True,True,0.5,False,3.51
+ungroundable_near,Deliver to the second kitchen.,second kitchen,,n3,kitchen,True,True,True,0.5,False,3.19
+ungroundable_near,Head to the staff lounge.,staff lounge,,,,True,,,,True,2.79

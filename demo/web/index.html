@@ -1,0 +1,159 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Semantic Navigation Demo</title>
+<style>
+  :root { --bg:#0f1420; --panel:#182236; --ink:#e8eefc; --muted:#94a3b8;
+          --room:#3b82f6; --corr:#d9c04a; --way:#e05a6f; --door:#5b6b86;
+          --ok:#22c55e; --no:#f43f5e; --line:#2a3550; }
+  * { box-sizing:border-box; }
+  body { margin:0; font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;
+         background:var(--bg); color:var(--ink); }
+  header { padding:16px 22px; border-bottom:1px solid var(--line); }
+  header h1 { margin:0; font-size:19px; font-weight:650; }
+  header p { margin:3px 0 0; color:var(--muted); font-size:13px; }
+  .wrap { display:grid; grid-template-columns:1.4fr 1fr; gap:0; height:calc(100vh - 62px); }
+  .map { position:relative; background:#0b1020; }
+  svg { width:100%; height:100%; }
+  .side { padding:18px 20px; overflow:auto; border-left:1px solid var(--line);
+          background:var(--panel); }
+  .row { display:flex; gap:8px; }
+  input[type=text] { flex:1; padding:11px 13px; border-radius:9px; border:1px solid var(--line);
+    background:#0d1424; color:var(--ink); font-size:15px; }
+  button { padding:11px 15px; border-radius:9px; border:0; background:var(--room);
+    color:#fff; font-weight:600; cursor:pointer; }
+  button.ghost { background:#22304c; color:var(--ink); font-weight:500; font-size:13px;
+    padding:7px 11px; }
+  .ex { display:flex; flex-wrap:wrap; gap:7px; margin:12px 0 4px; }
+  .card { margin-top:16px; border-radius:12px; padding:15px 16px; border:1px solid var(--line);
+    background:#0d1424; }
+  .card.ok { border-color:var(--ok); } .card.no { border-color:var(--no); }
+  .badge { display:inline-block; padding:3px 10px; border-radius:999px; font-size:12px;
+    font-weight:700; }
+  .badge.ok { background:rgba(34,197,94,.15); color:#4ade80; }
+  .badge.no { background:rgba(244,63,94,.15); color:#fb7185; }
+  .kv { color:var(--muted); font-size:13px; margin-top:8px; }
+  .kv b { color:var(--ink); }
+  .diag { margin-top:10px; padding:10px 12px; border-radius:8px; background:#151d30;
+    font-family:ui-monospace,Menlo,monospace; font-size:12.5px; color:#cbd5e1; }
+  .legend { display:flex; gap:14px; font-size:12px; color:var(--muted); margin-top:14px; }
+  .legend span:before { content:""; display:inline-block; width:10px; height:10px;
+    border-radius:50%; margin-right:5px; vertical-align:middle; }
+  .lg-room:before{background:var(--room)} .lg-corr:before{background:var(--corr)}
+  .lg-way:before{background:var(--way)} .lg-robot:before{background:var(--ok)}
+  small.hint { color:var(--muted); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Language-Grounded Navigation &mdash; live demo</h1>
+  <p>Type a destination. The agent proposes a map node, a Python verifier checks
+     it, and Nav2 drives there &mdash; or the robot abstains with a reason.</p>
+</header>
+
+<div class="wrap">
+  <div class="map">
+    <svg id="svg" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid meet"></svg>
+  </div>
+
+  <div class="side">
+    <div class="row">
+      <input id="q" type="text" placeholder="e.g. take me to the kitchen"
+             onkeydown="if(event.key==='Enter')ask()"/>
+      <button onclick="ask()">Send</button>
+    </div>
+    <div class="ex" id="examples"></div>
+    <small class="hint">Named rooms resolve; absent rooms and impossible
+      references (&ldquo;the second kitchen&rdquo;) abstain with a diagnostic.</small>
+
+    <div id="result"></div>
+
+    <div class="legend">
+      <span class="lg-room">room</span>
+      <span class="lg-corr">corridor</span>
+      <span class="lg-way">waypoint</span>
+      <span class="lg-robot">robot</span>
+    </div>
+  </div>
+</div>
+
+<script>
+let G = null, target = null;
+
+async function loadExamples() {
+  const ex = await (await fetch('/examples')).json();
+  const box = document.getElementById('examples');
+  box.innerHTML = '';
+  ex.forEach(e => {
+    const b = document.createElement('button');
+    b.className = 'ghost'; b.textContent = e.text;
+    b.onclick = () => ask(e.text, e.stratum, e.terms);
+    box.appendChild(b);
+  });
+}
+
+function bounds(nodes) {
+  const xs = nodes.map(n=>n.x), ys = nodes.map(n=>n.y);
+  let minx=Math.min(...xs), maxx=Math.max(...xs), miny=Math.min(...ys), maxy=Math.max(...ys);
+  const px=(maxx-minx)*0.15+1, py=(maxy-miny)*0.15+1;
+  return [minx-px, maxx+px, miny-py, maxy+py];
+}
+
+async function draw() {
+  const g = await (await fetch('/graph')).json(); G = g;
+  const svg = document.getElementById('svg');
+  const nodes = g.nodes; if (!nodes.length) return;
+  const [x0,x1,y0,y1] = bounds(nodes);
+  const W=100, H=100*(y1-y0)/(x1-x0||1);
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  const X = x => (x-x0)/(x1-x0)*W;
+  const Y = y => H-(y-y0)/(y1-y0)*H;
+  const col = {room:'#3b82f6',corridor:'#d9c04a',waypoint:'#e05a6f',doorway:'#5b6b86'};
+  let s = '';
+  const byId = Object.fromEntries(nodes.map(n=>[n.id,n]));
+  g.edges.forEach(e => { const u=byId[e.u], v=byId[e.v]; if(u&&v)
+    s += `<line x1="${X(u.x)}" y1="${Y(u.y)}" x2="${X(v.x)}" y2="${Y(v.y)}" stroke="#2a3550" stroke-width="0.4"/>`; });
+  nodes.forEach(n => {
+    const r = n.type==='doorway'?0.6:1.6;
+    const hl = (target===n.id) ? '<circle cx="'+X(n.x)+'" cy="'+Y(n.y)+'" r="'+(r+1.4)+'" fill="none" stroke="#22c55e" stroke-width="0.6"/>' : '';
+    s += hl + `<circle cx="${X(n.x)}" cy="${Y(n.y)}" r="${r}" fill="${col[n.type]||'#888'}"/>`;
+    if (n.type!=='doorway')
+      s += `<text x="${X(n.x)}" y="${Y(n.y)-2.4}" fill="#e8eefc" font-size="2.4" text-anchor="middle">${n.label.replace('_',' ')}</text>`;
+  });
+  if (g.robot) s += `<circle cx="${X(g.robot[0])}" cy="${Y(g.robot[1])}" r="1.7" fill="#22c55e" stroke="#083" stroke-width="0.4"/>`;
+  svg.innerHTML = s;
+}
+
+async function ask(text, stratum, terms) {
+  const q = text || document.getElementById('q').value.trim();
+  if (!q) return;
+  document.getElementById('q').value = q;
+  render({loading:true, query:q});
+  const r = await (await fetch('/resolve', {method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({query:q, stratum:stratum||null, terms:terms||null})})).json();
+  target = r.node_id; render(r); draw();
+}
+
+function render(r) {
+  const el = document.getElementById('result');
+  if (r.loading) { el.innerHTML = `<div class="card"><i>resolving &ldquo;${r.query}&rdquo;&hellip;</i></div>`; return; }
+  const ok = !r.abstained && r.node_id;
+  el.innerHTML = `<div class="card ${ok?'ok':'no'}">
+    <span class="badge ${ok?'ok':'no'}">${ok?'NAVIGATING':'ABSTAINED'}</span>
+    <div class="kv" style="margin-top:10px">query: <b>${r.query}</b></div>
+    ${ok ? `<div class="kv">target: <b>${(r.label||'').replace('_',' ')}</b> (node ${r.node_id})
+             &nbsp;at (${r.goal.x.toFixed(1)}, ${r.goal.y.toFixed(1)})</div>`
+         : `<div class="kv">no verified destination &mdash; the robot does not move</div>`}
+    <div class="kv">stratum: ${r.stratum} &nbsp;&middot;&nbsp; attempts: ${r.attempts}
+       &nbsp;&middot;&nbsp; ${r.latency_s}s</div>
+    ${r.diagnostic ? `<div class="diag">${r.diagnostic}</div>` : ''}
+  </div>`;
+}
+
+loadExamples(); draw(); setInterval(draw, 1500);
+</script>
+</body>
+</html>

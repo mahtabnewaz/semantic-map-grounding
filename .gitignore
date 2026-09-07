@@ -1,0 +1,101 @@
+# =====================================================================
+# Secrets / API credentials  (NEVER commit these)
+# =====================================================================
+.env
+.env.*
+!.env.example
+*.key
+*_key
+*.pem
+secrets.*
+**/credentials*
+
+# =====================================================================
+# Python
+# =====================================================================
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+build/
+dist/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# =====================================================================
+# Virtual environments
+# =====================================================================
+venv/
+.venv/
+env/
+ENV/
+
+# =====================================================================
+# Dataset (large; fetch separately -- see README)
+# =====================================================================
+data/houseexpo/
+data/real_maps/
+data/platforms/
+HouseExpo/
+*.tar.gz
+*.pgm
+
+# =====================================================================
+# Papers, presentations, literature (not part of the code artifact)
+# =====================================================================
+paper/
+paper2/
+paper2_modified/
+paper2.zip
+Preparation_of_Papers_for_IEEE_ACCESS/
+presentation/
+Literature_Review_*.xlsx
+*.xlsx
+*.pdf
+*.aux
+*.log
+*.out
+*.synctex.gz
+*.bbl
+*.blg
+
+# =====================================================================
+# Assistant / local machine config
+# =====================================================================
+CLAUDE.md
+.claude/
+
+# =====================================================================
+# Separate large exploration tree (vendored env + third_party)
+# =====================================================================
+amr_stack_integration/
+
+# =====================================================================
+# Demo: ROS 2 build artifacts and generated maps
+# =====================================================================
+demo/ros2_ws/build/
+demo/ros2_ws/install/
+demo/ros2_ws/log/
+demo/maps/
+
+# =====================================================================
+# OS / editor
+# =====================================================================
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.idea/
+.vscode/
+
+# =====================================================================
+# Scratch / temp
+# =====================================================================
+scratchpad/
+tmp/
+*.tmp
+
+# demo command scratch
+demo/demo.txt

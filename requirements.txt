@@ -1,0 +1,11 @@
+# Core stack (CLAUDE.md). Pin versions once the environment is settled;
+# ask before adding dependencies — the env must stay laptop-reproducible.
+networkx
+shapely
+scikit-image
+numpy
+scipy
+python-dotenv
+openai          # OpenAI-compatible client for both Ollama and Groq
+
+# ROS 2 web integration comes later via rosbridge_suite (not pip-managed).

@@ -1,0 +1,45 @@
+# Language-grounded navigation demo.
+#
+#   cd ~/amr_research/demo
+#   xhost +local:docker                      # once per login: let the container draw
+#   docker compose up -d --build             # container comes up idle (GUI-ready)
+#   docker exec -it semantic_nav_demo bash /workspace/amr/demo/run_demo.sh
+#
+# The web UI is on http://localhost:8088. GUI apps (Gazebo, RViz) draw on the
+# host X server; /dev/dri gives hardware OpenGL on the Intel Iris Xe (no dedicated
+# GPU needed). GROQ_API_KEY is read from ../.env (repo root). For local Ollama
+# instead of Groq, set LLM_PROVIDER=ollama and LLM_MODEL=llama3.2:3b.
+
+services:
+  demo:
+    build: .
+    image: semantic-nav-demo:humble
+    container_name: semantic_nav_demo
+    network_mode: host          # X, Gazebo, RViz, and the web port share the host net
+    privileged: true
+    env_file:
+      - ../.env                 # picks up GROQ_API_KEY / OLLAMA_* if set there
+    environment:
+      - DISPLAY=${DISPLAY:-:1}
+      - QT_X11_NO_MITSHM=1
+      - LIBGL_ALWAYS_SOFTWARE=${LIBGL_ALWAYS_SOFTWARE:-0}   # set 1 only if GL is broken
+      - TURTLEBOT3_MODEL=waffle
+      - LLM_PROVIDER=${LLM_PROVIDER:-groq}
+      - LLM_MODEL=${LLM_MODEL:-openai/gpt-oss-20b}
+      - LLM_EFFORT=${LLM_EFFORT:-low}
+      - LLM_MAXTOK=${LLM_MAXTOK:-1024}
+      # GROQ_API_KEY comes from ../.env (env_file). Do not set it here, or an
+      # unset host var would override the .env value with an empty string.
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-http://localhost:11434/v1}
+      - AGENT_NMAX=${AGENT_NMAX:-2}
+    devices:
+      - /dev/dri:/dev/dri        # Intel Iris Xe hardware OpenGL
+    group_add:
+      - "44"                     # video group
+      - "992"                    # render group
+    volumes:
+      - ..:/workspace/amr                       # mount the amr_research repo
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+    # Come up idle and stay alive; run_demo.sh starts the stack. This keeps the
+    # container running even if a launch component fails, so you can inspect logs.
+    command: bash -c "sleep infinity"
