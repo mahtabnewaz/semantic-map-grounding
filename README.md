@@ -243,14 +243,7 @@ kitchen by intent; *"go to the operating theatre"* **abstains** — no such room
 
 ## Citation
 
-```bibtex
-@misc{newaz2025verifyorabstain,
-  title  = {Verify, or Abstain: Structural Grounding of Language Queries
-            over Semantic Maps for Indoor Service Robots},
-  author = {Newaz, Mahtab and Lamya, Ramisa},
-  year   = {2025},
-  note   = {North South University}
-}
+
 ```
 
 ## Acknowledgements
